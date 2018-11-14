@@ -6,6 +6,8 @@ output:
   slidy_presentation: 
     fig_height: 4
     fig_width: 4
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -19,7 +21,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Les anamorphoses
 
-[Les anamorphoses cartographiques](https://neocarto.hypotheses.org/366) 
+[Les anamorphoses cartographiques](https://neocarto.hypotheses.org/366)   
 *Nicolas Lambert, 2015*
 
 
@@ -47,7 +49,7 @@ Il existe donc principalement deux types de cartogrammes :
 - Les cartogrammes non continus
 
 
-## Les cartogrammes de dorling
+## Les cartogrammes de Dorling
 
 La taille des cercles est proportionnelle à une variable. 
 
@@ -111,7 +113,7 @@ L'agencement des polygones les uns par rapport aux autres est conservée.
 
 La forme des polygones est ressemblante.   
 
-## 
+## Exemple
 
 ![](fig/nc.png)
 
@@ -153,7 +155,7 @@ L'agencement des polygones les uns par rapport aux autres est conservée.
 
 Pour conserver la contiguité, la forme des polygones est fortement transformée.  
 
-## 
+## Exemple
 
 ![](fig/c.png)
 
@@ -166,7 +168,7 @@ Pour conserver la contiguité, la forme des polygones est fortement transformée
 
 ## Mise en oeuvre avec R
 
-```{r, cache=T}
+```{r, cache=T, message=F, warning=F}
 library(sf)
 library(cartogram)
 library(cartography)
@@ -188,18 +190,42 @@ Il existe surement des extensions QGIS ou ArcGis...
 
 
 
-## les cartogrammes de distance
+## Les cartogrammes de distance
+
+Il s'agit de déformer la carte en fonction de distances non topologiques. 
+
+## Exemple
+![](fig/t1.png)
+
+## Exemple
+![](fig/t2.png)
+
+## Précautions d'emploi
+
+\- Experimental, difficile à réaliser
+Les résultats doivent être interprétés soigneusement en fonction du sujet concerné, des hypothèses émises et des données entrées. 
+
+\+ Très original
+Cartes assez “expressives”
+
+
+## Mise en oeuvre avec R et OSRM
+Le package `osrm` permet de créer une matrice de distance routières basée sur le réseau OSM.   
+Le plugin QGIS DistanceCartogram permet de réaliser facilement ces anamorphoses. 
+
+![](fig/dc.png)
+
+
+
+## Autres logiciels
+Le logiciel [darcy](http://thema.univ-fcomte.fr/production/logiciels/16-categories-en-francais/cat-productions-fr/cat-logiciels-fr/294-art-darcy) permet de réaliser ces anamorphoses. 
 
 
 
 
 
 
-
-
-
-
-##
+## Bilan
 
 ### Interêts des anamorphoses
 
@@ -224,7 +250,62 @@ Demande un **effort de lecture**.
 
 ## Les grilles régulières
 
+Par une série d'opération SIG assez simple il est possible de transformer des données d'un maillage initial vers un maillage régulier plus neutre et plus simple. 
+
+
+![](fig/maup.png)
+
+
+## Exemple
+
+![](fig/pregrid.png)
+
+## Exemple
+
+![](fig/grid.png)
+
+## Précautions d'emploi
+
+\- Perte de précision, maillage sans signification. La version simple (au prorata de la surface, implique une equirépartition du phénomène dans chaque unités. 
+
+
+\+ Permet la comparaison de maillages différents, à plusieurs dates ou de différentes sources. 
+
+## Mise en oeuvre dans R
+```{r, cache=T, message=F, warning=F}
+library(sf)
+library(cartogram)
+library(cartography)
+par(mar = c(0,0,0,0))
+com46 <- readRDS(file = "com46.rds")
+bks <- getBreaks(v = com46$PAGR, method = "q6", nclass = 8)[-1]
+cols <- carto.pal("green.pal", 2, "wine.pal", 3)
+choroLayer(x = com46, var = "PAGR", breaks = bks, col = cols, lwd = .5, 
+           legend.pos = "topleft")
+com46_grid <- getGridLayer(x = com46, cellsize = 5000 * 5000, 
+                           type = "hexagonal", var = c("AGR", "TOT"))
+com46_grid$PAGR <- 100 * com46_grid$AGR / com46_grid$TOT
+choroLayer(x = com46_grid, var = "PAGR", breaks = bks, col = cols,
+           lwd = .5, legend.pos = "topleft")
+
+```
+
+
+## Autres logiciels
+
+Les SIG!
+
+
+
+
+
+
+
+
 ## Les discontinuités 
+
+
+
 
 ## Les lissages
   - potentiels
