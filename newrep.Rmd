@@ -270,7 +270,8 @@ Par une série d'opération SIG assez simple il est possible de transformer des 
 
 ## Précautions d'emploi
 
-\- Perte de précision, maillage sans signification. La version simple (au prorata de la surface), implique une equirépartition du phénomène dans chaque unités. 
+\- Perte de précision, maillage sans signification.   
+La version simple (au prorata de la surface), implique une equirépartition du phénomène dans chaque unités. 
 
 
 \+ Permet la comparaison de maillages différents, à plusieurs dates ou de différentes sources. 
@@ -327,10 +328,12 @@ Il est souvent bénéfique de coupler ce type de représentation à une représe
 
 ## Précautions d'emploi
 
-\- Ces cartes ne sont pas évidentes à paramétrer. Le choix des critères (seuil, type de différences...) va fortement influencer la représentation. En fonction du maillage la lisibilité peut être faible. 
+\- Ces cartes ne sont pas évidentes à paramétrer.   
+Le choix des critères (seuil, type de différences...) va fortement influencer la représentation.   
+En fonction du maillage la lisibilité peut être faible. 
 
 
-\+ Représentation très puissante pour représenter les inégalités. 
+\+ Représentation très puissante pour montrer les inégalités. 
 
 
 ## Mise en oeuvre dans R
@@ -376,13 +379,19 @@ On peut utiliser un SIG en réalisant une longue suite d'opérations.
 
 ## Le lissage spatial
 
-Le principe du lissage spatial est de filtrer l’information pour révéler des structures spatiales sous-jacentes. 
+L'idée principale du lissage est de filtrer l’information pour révéler des structures spatiales sous-jacentes.
 
-Il s'agit de considérer les observations statistiques en prenant en compte leur voisinnage. 
+C'est un ensemble de méthodes qui consistent à affecter aux points que l'on observe une valeur prenant en compte les valeurs de leur voisinnage. 
 
-Ces méthodes permettent de passer de représentations discontinues (ponctuelles ou dans des mailles) vers des représentations continues.
+Il existe plusieurs méthodes de lissage (kde, potentiels...) plus ou moins paramétrables. 
 
-Plusieurs méthodes existent comme les KDE ou les potentiels. 
+Cette méthode permet de passer représentations ponctuelles à une représentation continue. 
+
+
+## Le lissage par potentiels
+[Vignette du package SpatialPosition](https://cran.r-project.org/web/packages/SpatialPosition/vignettes/StewartExample.html)
+
+
 
 ## Exemple
 
@@ -393,43 +402,79 @@ Plusieurs méthodes existent comme les KDE ou les potentiels.
 ![](fig/liss2.png)
 
 
-## Lissage par la méthode des potentiels
-[Vignette du package `SpatialPosition`](https://cran.r-project.org/web/packages/SpatialPosition/vignettes/StewartExample.html)
-
-
 ## Précautions d'emploi
 
-\- Ces cartes ne sont pas évidentes à paramétrer. Le choix des paramètres doit dépendre des hypothèses que nous avons sur les interactions spatiales. Les méthodes statistiques mises en oeuvre ne sont pas accéssibles à tous les publics. 
-Il est souvent nécessaire d'en simplifier la présentation (par des légendes qualitatives par exemple).
+\- Il est difficile de paramétrer correctement les fonctions de lissages.   
+Elles doivent s'appuyer sur des hypothèses de comportement dans l'espace.   
+La compréhension par un public large n'est pas évidente, il faut alors simplifier les légendes, la présentation de la méthode. 
 
-\+ Les cartes produites sont assez originales et attirent l'oeil. Elles permettent de s'affranchir du maillage initial. 
-
+\+ Permet de faire ressortir des phénomènes spatiaux sous-jacents invisibles directement.   
+Les cartes produites attirent l'oeil par leur originalité.   
+Cette méthode permet de passer d'une représentation ponctuelle ou discontuinue (dans un maillage) à une représentation continue s'affranchissant des maillages existants. 
 
 
 ## Mise en oeuvre dans R
-```{r, cache=T, message=F, warning=F}
+```{r, cache=T, message=F, warning=F, fig.width = 8, fig.height = 8}
 library(sf)
 library(cartography)
 library(SpatialPosition)
-par(mar = c(0,0,0,0))
+par(mar = c(0,0,1.2,0), mfrow = c(2, 2))
 com46 <- readRDS(file = "com46.rds")
-com46_border <- getBorders(x = com46, id = "INSEE_COM")
-plot(st_geometry(com46), border = NA, col = "grey60")
-# Plot borders
-plot(st_geometry(com46_border), 
-     col = sample(x = rainbow(nrow(com46_border))), 
-     lwd = 3, add = TRUE)
+bks <- getBreaks(v = com46$POUV, method = "quantile", nclass = 10)[-c(1,2)]
+cols <- carto.pal("turquoise.pal", 8)
+choroLayer(x = com46, var = "POUV", breaks = bks, col = cols, 
+           lwd = 0.2, border = "grey80", 
+           legend.pos = "topleft", legend.title.txt = "% ouvriers")
+layoutLayer("Taux brut", sources = "", author = "")
 
-bks <- c(0, 5, 10, 20, 40, 67)
-cols <- carto.pal("wine.pal", 5)
-choroLayer(x = com46, var = "PCAD", breaks = bks, col = cols, lwd = .5, 
-           legend.pos = "topleft", border = NA)
-discLayer(x = com46_border, df = com46,
-          var = "PCAD", col="darkblue", nclass=3,
-          method="quantile", threshold = 0.33, sizemin = 0.5,
-          sizemax = 7, type = "abs", 
-          legend.title.txt = "Discontinuities",
-          legend.pos = "bottomright", add=TRUE)
+com46_sp <- as(com46, "Spatial")
+row.names(com46_sp) <- com46_sp$INSEE_COM
+com46_sp$OUV <- com46_sp$OUV * 100
+com46_pot <- quickStewart(spdf = com46_sp, 
+                         df = com46_sp@data, 
+                         var = "OUV",
+                         var2 = "TOT",
+                         span = 5000, 
+                         beta = 2, breaks = bks,
+                         mask = com46_sp)
+choroLayer(spdf = com46_pot, 
+           var = "center", breaks = bks, col = cols, 
+           legend.pos = "topleft", lwd = 0.2, border = "grey80",
+           legend.title.txt = "% ouvriers")
+layoutLayer("Lissage continu, portée 5 km", sources = "", author = "")
+
+mat_fly <- CreateDistMatrix(knownpts = com46_sp, unknownpts = com46_sp)
+com46_pot_fly_OUV <- stewart(knownpts = com46_sp, unknownpts = com46_sp, 
+                     matdist = mat_fly, varname = "OUV", 
+                     typefct = "exponential", span = 5000, 
+                     beta = 2)
+com46_pot_fly <- stewart(knownpts = com46_sp, unknownpts = com46_sp, 
+                     matdist = mat_fly, varname = "TOT", 
+                     typefct = "exponential", span = 5000, 
+                     beta = 2)
+com46_pot_fly$POUVL <- com46_pot_fly_OUV$OUTPUT / com46_pot_fly$OUTPUT
+choroLayer(spdf = com46_pot_fly, 
+           var = "POUVL", breaks = bks, col = cols, 
+           legend.pos = "topleft", lwd = 0.2, border = "grey80", 
+           legend.title.txt = "% ouvriers")
+layoutLayer("Lissage dans les mailles, portée 5 km", sources = "", author = "")
+
+
+mat_road <- readRDS("mat46.rds")
+com46_pot_road_OUV <- stewart(knownpts = com46_sp, unknownpts = com46_sp, 
+                     matdist = mat_road, varname = "OUV", 
+                     typefct = "exponential", span = 10, 
+                     beta = 2)
+com46_pot_road <- stewart(knownpts = com46_sp, unknownpts = com46_sp, 
+                     matdist = mat_road, varname = "TOT", 
+                     typefct = "exponential", span = 10, 
+                     beta = 2)
+com46_pot_road$POUVL <- com46_pot_road_OUV$OUTPUT / com46_pot_road$OUTPUT
+choroLayer(spdf = com46_pot_road, 
+           var = "POUVL", breaks = bks, col = cols, 
+           legend.pos = "topleft", lwd = 0.2, border = "grey80", 
+           legend.title.txt = "% ouvriers")
+layoutLayer("Lissage dans les mailles, portée 10 min", sources = "", author = "")
 
 ```
 
@@ -439,6 +484,3 @@ discLayer(x = com46_border, df = com46,
 La méthode de lissage par potentiels est disponible dans Magrit.   
 
 Les SIG donnent accès à d'autre méthodes comme les KDE. 
-
-
-
