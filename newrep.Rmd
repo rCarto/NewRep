@@ -37,6 +37,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 *Brunet, R., Ferras, R., & Théry, H. (1993). Les mots de la géographie: dictionnaire critique (No. 03) 911 BRU).*
 
+
+</br></br>
+
 Il existe donc principalement deux types de cartogrammes : 
 
 - les cartogrammes de surface
@@ -44,7 +47,7 @@ Il existe donc principalement deux types de cartogrammes :
 
 ## Les cartogrammes de surface
 
-- Les cartogrammes de dorling
+- Les cartogrammes de Dorling
 - Les cartogrammes continus
 - Les cartogrammes non continus
 
@@ -89,7 +92,7 @@ Les tailles de cercles sont vraiment comparables
 
 Le package `cartogram` permet de réaliser les cartogrammes de Dorling. 
 
-```{r, cache=T}
+```{r, cache=T, message=FALSE, warning=FALSE}
 library(sf)
 library(cartogram)
 library(cartography)
@@ -202,16 +205,17 @@ Il s'agit de déformer la carte en fonction de distances non topologiques.
 
 ## Précautions d'emploi
 
-\- Experimental, difficile à réaliser
+\- Experimental, difficile à réaliser.  
 Les résultats doivent être interprétés soigneusement en fonction du sujet concerné, des hypothèses émises et des données entrées. 
 
-\+ Très original
+\+ Très original.  
 Cartes assez “expressives”
 
 
-## Mise en oeuvre avec R et OSRM
-Le package `osrm` permet de créer une matrice de distance routières basée sur le réseau OSM.   
-Le plugin QGIS DistanceCartogram permet de réaliser facilement ces anamorphoses. 
+## Mise en oeuvre avec R et QGIS
+
+* Le package `osrm` permet de créer une matrice de distance routières basée sur le réseau OSM.   
+* Le plugin QGIS DistanceCartogram permet de réaliser facilement ces anamorphoses. 
 
 ![](fig/dc.png)
 
@@ -266,7 +270,7 @@ Par une série d'opération SIG assez simple il est possible de transformer des 
 
 ## Précautions d'emploi
 
-\- Perte de précision, maillage sans signification. La version simple (au prorata de la surface, implique une equirépartition du phénomène dans chaque unités. 
+\- Perte de précision, maillage sans signification. La version simple (au prorata de la surface), implique une equirépartition du phénomène dans chaque unités. 
 
 
 \+ Permet la comparaison de maillages différents, à plusieurs dates ou de différentes sources. 
@@ -303,6 +307,69 @@ Les SIG!
 
 
 ## Les discontinuités 
+
+Ce type de représentation permet de souligner cartographiquement les discontinuités territoriales d'un phénomène. 
+
+L'accent est porter sur ce qui distingue des territoires. 
+
+Pour chaque frontière nous calculons le rapports ou la différence des valeurs des polygones de part et d'autre. Puis nous représentons la frontière par un figuré d'autant plus épais que la différence est forte. 
+
+Il est souvent bénéfique de coupler ce type de représentation à une représentation choroplèthe (pour comprendre le sens des discontinuités).
+
+
+## Exemple
+
+![](fig/disc1.png)
+
+## Exemple
+
+![](fig/disc2.png)
+
+## Précautions d'emploi
+
+\- Ces cartes ne sont pas évidentes à paramétrer. Le choix des critères (seuil, type de différences...) va fortement influencer la représentation. En fonction du maillage la lisibilité peut être faible. 
+
+
+\+ Représentation très puissante pour représenter les inégalités. 
+
+
+## Mise en oeuvre dans R
+```{r, cache=T, message=F, warning=F}
+library(sf)
+library(cartography)
+par(mar = c(0,0,0,0))
+com46 <- readRDS(file = "com46.rds")
+com46_border <- getBorders(x = com46, id = "INSEE_COM")
+plot(st_geometry(com46), border = NA, col = "grey60")
+# Plot borders
+plot(st_geometry(com46_border), 
+     col = sample(x = rainbow(nrow(com46_border))), 
+     lwd = 3, add = TRUE)
+
+bks <- c(0, 5, 10, 20, 40, 67)
+cols <- carto.pal("wine.pal", 5)
+choroLayer(x = com46, var = "PCAD", breaks = bks, col = cols, lwd = .5, 
+           legend.pos = "topleft", border = NA)
+discLayer(x = com46_border, df = com46,
+          var = "PCAD", col="darkblue", nclass=3,
+          method="quantile", threshold = 0.33, sizemin = 0.5,
+          sizemax = 7, type = "abs", 
+          legend.title.txt = "Discontinuities",
+          legend.pos = "bottomright", add=TRUE)
+
+```
+
+
+## Autres logiciels
+
+Magrit permet ce type de représentation. 
+
+On peut utiliser un SIG en réalisant une longue suite d'opérations.
+
+
+
+
+
 
 
 
@@ -345,6 +412,7 @@ Vous pouvez consulter le site du CIST pour s’inspirer (style, logo, niveau sci
 
 Documents de travail :
 Données des précédents TP
+
 PPT de cours sur les transformations cartographiques 
 
 
